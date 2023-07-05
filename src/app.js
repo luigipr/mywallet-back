@@ -6,6 +6,7 @@ import { stripHtml } from "string-strip-html";
 import { userSchema, loginSchema} from "../schemas";
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
+import dayjs from "dayjs";
 
 //criando a api
 const app = express()
@@ -43,7 +44,7 @@ app.post("/cadastro", async (req, res) => {
 		if (user) return res.status(409).send("Esse usuario já existe!")
 
         const hash = bcrypt.hashSync(password, 10)
-		await db.collection("usuarios").insertOne({ username, email, password: hash })
+		await db.collection("usuarios").insertOne({ username, email, password: hash, balance: 0})
 		res.sendStatus(201)
 	} catch (err) {
 		res.status(500).send(err.message)
@@ -69,12 +70,48 @@ app.post("/" , async (req , res) => {
         if (!correctPW) return res.status(401).send("Senha incorreta")
 
         const token = uuid()
-		await db.collection("session").insertOne({ token, userID: user._id })
+		await db.collection("sessions").insertOne({ token, userID: user._id })
         res.status(200).send(token)
     } catch (err) {
     res.status(500).send(err.message)
     }
 })
+
+app.post("/nova-transacao/:tipo", (req, res) => {
+	const { authorization } = req.headers;
+	const {value , description, date} = req.body;
+	
+	const token = authorization?.replace('Bearer ', '');
+  	if(!token) return res.sendStatus(401);
+
+
+
+
+})
+
+
+
+
+
+
+
+
+app.delete("/home", async (req, res) => {
+	const { authorization } = req.headers;
+	const token = authorization?.replace('Bearer ', '');
+  
+	if(!token) return res.sendStatus(401);
+
+	try {
+
+	const session = await db.collection("sessions").deleteOne({ token });      	
+
+	res.sendStatus(200);
+	} catch (err) {
+	  res.sendStatus(401);
+	}
+});
+
 
 
 
