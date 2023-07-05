@@ -3,10 +3,11 @@ import cors from 'cors';
 import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv"
 import { stripHtml } from "string-strip-html";
-import { userSchema, loginSchema} from "../schemas";
+import { userSchema, loginSchema, transactionSchema} from "../schemas.js";
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
 import dayjs from "dayjs";
+import Joi from "joi";
 
 //criando a api
 const app = express()
@@ -26,7 +27,7 @@ const db = mongoClient.db()
 //codigo
 
 app.post("/cadastro", async (req, res) => {
-
+//sign-up
     const {username, email, password, confirmPassword} = req.body
 
     const validation = userSchema.validate(req.body, { abortEarly: false })
@@ -78,12 +79,17 @@ app.post("/" , async (req , res) => {
 })
 
 app.post("/nova-transacao/:tipo", (req, res) => {
-	const { authorization } = req.headers;
+	const { authorization } = req.headers["authorization"];
 	const {value , description, date} = req.body;
 	
 	const token = authorization?.replace('Bearer ', '');
   	if(!token) return res.sendStatus(401);
 
+	const validation = transactionSchema.validate(req.body, { abortEarly: false })
+	if (validation.error) {
+		const errors = validation.error.details.map(detail => detail.message)
+		return res.status(422).send(errors)
+	}
 
 
 
@@ -91,20 +97,26 @@ app.post("/nova-transacao/:tipo", (req, res) => {
 
 
 
+async function validatetoken(token) {
 
+
+}
 
 
 
 
 app.delete("/home", async (req, res) => {
-	const { authorization } = req.headers;
+//logout
+	const { authorization } = req.headers["authorization"];
 	const token = authorization?.replace('Bearer ', '');
   
 	if(!token) return res.sendStatus(401);
 
+
 	try {
 
-	const session = await db.collection("sessions").deleteOne({ token });      	
+	const session = await db.collection("sessions").deleteOne({ token });      
+	if (!session) res.sendStatus(404)	
 
 	res.sendStatus(200);
 	} catch (err) {
