@@ -8,7 +8,7 @@ import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
 import dayjs from "dayjs";
 import Joi from "joi";
-
+import { signin, signup, signoff } from "./controllers/authController.js";
 //criando a api
 const app = express()
 app.use(cors())
@@ -26,103 +26,82 @@ const db = mongoClient.db()
 
 //codigo
 
-app.post("/cadastro", async (req, res) => {
 //sign-up
-    const {username, email, password, confirmPassword} = req.body
+app.post("/cadastro", signup)
 
-    const validation = userSchema.validate(req.body, { abortEarly: false })
-	if (validation.error) {
-		const errors = validation.error.details.map(detail => detail.message)
-		return res.status(422).send(errors)
-	}
-
-    if (password !== confirmPassword) return res.status(422).send('as senhas devem ser iguais!')
-
-    
-
-    try {
-		const user = await db.collection("usuarios").findOne({ email })
-		if (user) return res.status(409).send("Esse usuario já existe!")
-
-        const hash = bcrypt.hashSync(password, 10)
-		await db.collection("usuarios").insertOne({ username, email, password: hash, balance: 0})
-		res.sendStatus(201)
-	} catch (err) {
-		res.status(500).send(err.message)
-	}
-})
-
-app.post("/" , async (req , res) => {
 //sign-in
-    const {email, password} = req.body
+app.post("/" , signin)
 
-    const validation = loginSchema.validate(req.body, { abortEarly: false })
-	if (validation.error) {
-		const errors = validation.error.details.map(detail => detail.message)
-		return res.status(422).send(errors)
-	}
+//signoff
+app.delete("/home", signoff);
 
 
-    try {
-        const user = await db.collection("usuarios").findOne({email})
-        if (!user) return res.status(404).send("Usuário não cadastrado")
-
-        const correctPW = bcrypt.compareSync(password, user.password)
-        if (!correctPW) return res.status(401).send("Senha incorreta")
-
-        const token = uuid()
-		await db.collection("sessions").insertOne({ token, userID: user._id })
-        res.status(200).send(token)
-    } catch (err) {
-    res.status(500).send(err.message)
-    }
-})
-
-app.post("/nova-transacao/:tipo", (req, res) => {
+app.post("/nova-transacao/:tipo", async (req, res) => {
 	const { authorization } = req.headers["authorization"];
-	const {value , description, date} = req.body;
-	
-	const token = authorization?.replace('Bearer ', '');
-  	if(!token) return res.sendStatus(401);
+	const {value , description} = req.body;
+	const {tipo} = req.params;
 
+	if (tipo !== 'entrada' || tipo !== 'saida') res.sendStatus(422);
 	const validation = transactionSchema.validate(req.body, { abortEarly: false })
 	if (validation.error) {
 		const errors = validation.error.details.map(detail => detail.message)
 		return res.status(422).send(errors)
 	}
 
+	const token = authorization?.replace('Bearer ', '');
+	if(!token) return res.sendStatus(401);
 
+	try{
 
+		const userId = await validateToken(token);
+    	if (!userId) return res.sendStatus(401);
+
+		const user = await db.collection("usuarios").findOne({ _id: new ObjectId(userId) })
+		delete user.password;
+		const date = dayjs().format("DD:MM")
+	
+		if (tipo === 'entrada') {
+			await db.collection('usuarios').updateOne({ username: user.username}, {$set: user.balance = user.balance + value});
+			await db.collection('usuarios').updateOne({ username: user.username}, { $push: { value, description, type: 'entrada'} });
+			return res.sendStatus(201)
+		}
+		if (tipo === 'saida') {
+			await db.collection('usuarios').updateOne({ username: user.username}, {$set: user.balance = user.balance - value});
+			await db.collection('usuarios').updateOne({ username: user.username}, { $push: { transactions: { value, description, date, type: 'saida'} }});
+			return res.sendStatus(201)
+		}
+	}catch (err) {
+		res.status(500).send(err)
+	}
 })
 
+app.get("/home", async (req, res) => {
+	const { authorization } = req.headers["authorization"];
+	const token = authorization?.replace('Bearer ', '');
+	if(!token) return res.sendStatus(401);
 
+	try{
 
-async function validatetoken(token) {
+		const userId = await validateToken(token);
+    	if (!userId) return res.sendStatus(401);
+		const user = await db.collection("usuarios").findOne({ _id: new ObjectId(userId) })
+		delete user.password;
 
+		res.status(200).send(user.transactions)
+	} catch (err) {
+		res.status(500).send(err)
+	}
+})
 
+async function validateToken(token) {
+	const session = await db.collection("sessions").findOne({ token });
+	return session?.userId || null;
 }
 
 
 
 
-app.delete("/home", async (req, res) => {
-//logout
-	const { authorization } = req.headers["authorization"];
-	const token = authorization?.replace('Bearer ', '');
-  
-	if(!token) return res.sendStatus(401);
 
-
-	try {
-
-	const session = await db.collection("sessions").deleteOne({ token });      
-	if (!session) res.sendStatus(404)	
-
-	res.sendStatus(200);
-	} catch (err) {
-	  res.sendStatus(401);
-	}
-});
 
 
 

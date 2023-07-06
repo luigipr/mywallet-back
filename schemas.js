@@ -1,5 +1,7 @@
 import Joi from "joi";
 
+const Joi = require('joi').extend(require('@joi/date'))
+
 export const userSchema = Joi.object({
     name: Joi.string().required(),
     email: Joi.string().email().required(),
@@ -14,6 +16,5 @@ export const loginSchema = Joi.object({
 
 export const transactionSchema = Joi.object({
     value: Joi.number().precision(2).required(),
-    description: Joi.string().required(),
-    date: Joi.date().format('DD-MM').required()
+    description: Joi.string().required()
 })
