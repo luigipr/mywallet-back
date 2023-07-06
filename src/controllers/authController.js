@@ -1,6 +1,8 @@
-import { userSchema, loginSchema} from "../schemas.js";
+import { userSchema, loginSchema} from "../../schemas.js";
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
+import { db } from "../app.js";
+
 
 
 
@@ -33,7 +35,7 @@ export async function signin(req , res) {
 
 export async function signup(req, res) {
 
-    const {username, email, password, confirmPassword} = req.body
+    const {username, email, password, password2} = req.body
 
     const validation = userSchema.validate(req.body, { abortEarly: false })
 	if (validation.error) {
@@ -41,7 +43,7 @@ export async function signup(req, res) {
 		return res.status(422).send(errors)
 	}
 
-    if (password !== confirmPassword) return res.status(422).send('as senhas devem ser iguais!')   
+    if (password !== password2) return res.status(422).send('as senhas devem ser iguais!')   
 
     try {
 		const user = await db.collection("usuarios").findOne({ email })
@@ -49,7 +51,7 @@ export async function signup(req, res) {
 
         const hash = bcrypt.hashSync(password, 10)
 		await db.collection("usuarios").insertOne({ username, email, password: hash, balance: 0, transactions: []})
-		res.sendStatus(201)
+		res.status(201).send(user)
 	} catch (err) {
 		res.status(500).send(err.message)
 	}

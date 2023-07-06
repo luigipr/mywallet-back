@@ -14,6 +14,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 dotenv.config();
+console.log(process.env.DATABASE_URL)
 //conectando ao mongo
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 try {
@@ -22,7 +23,7 @@ try {
 } catch (err) {
 	(err) => console.log(err.message)
 }
-const db = mongoClient.db()
+export const db = mongoClient.db()
 
 //codigo
 

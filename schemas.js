@@ -1,12 +1,10 @@
 import Joi from "joi";
 
-const Joi = require('joi').extend(require('@joi/date'))
-
 export const userSchema = Joi.object({
     name: Joi.string().required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(3).required(),
-    confirmPassword:  Joi.string().min(3).required()
+    password2:  Joi.string().min(3).required()
 })
 
 export const loginSchema = Joi.object({
