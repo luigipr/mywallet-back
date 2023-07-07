@@ -8,7 +8,7 @@ const userRouter = Router()
 
 userRouter.delete("/home", validateAuth, signoff);
 userRouter.post("/nova-transacao/:tipo", validateAuth,validateSchema(transactionSchema), transaction)
-userRouter.get("/", validateAuth, userTransactions)
+userRouter.get("/home", validateAuth, userTransactions)
 
 
 export default userRouter
