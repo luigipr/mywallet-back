@@ -1,7 +1,7 @@
 import Joi from "joi";
 
 export const userSchema = Joi.object({
-    name: Joi.string().required(),
+    username: Joi.string().required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(3).required(),
     password2:  Joi.string().min(3).required()
@@ -14,5 +14,6 @@ export const loginSchema = Joi.object({
 
 export const transactionSchema = Joi.object({
     value: Joi.number().precision(2).required(),
-    description: Joi.string().required()
+    description: Joi.string().required(),
+    tipo: Joi.string().valid('entrada','saida').required()
 })

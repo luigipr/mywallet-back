@@ -1,23 +1,12 @@
-import { userSchema, loginSchema} from "../../schemas.js";
+
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
 import { db } from "../app.js";
 
-
-
-
-
 export async function signin(req , res) {
     //sign-in
         const {email, password} = req.body
-    
-        const validation = loginSchema.validate(req.body, { abortEarly: false })
-        if (validation.error) {
-            const errors = validation.error.details.map(detail => detail.message)
-            return res.status(422).send(errors)
-        }
-    
-    
+       
         try {
             const user = await db.collection("usuarios").findOne({email})
             if (!user) return res.status(404).send("Usuário não cadastrado")
@@ -37,12 +26,6 @@ export async function signup(req, res) {
 
     const {username, email, password, password2} = req.body
 
-    const validation = userSchema.validate(req.body, { abortEarly: false })
-	if (validation.error) {
-		const errors = validation.error.details.map(detail => detail.message)
-		return res.status(422).send(errors)
-	}
-
     if (password !== password2) return res.status(422).send('as senhas devem ser iguais!')   
 
     try {
@@ -50,28 +33,10 @@ export async function signup(req, res) {
 		if (user) return res.status(409).send("Esse usuario já existe!")
 
         const hash = bcrypt.hashSync(password, 10)
-		await db.collection("usuarios").insertOne({ username, email, password: hash, balance: 0, transactions: []})
+		await db.collection("usuarios").insertOne({ username, email, password: hash})
+        console.log(username, email)
 		res.status(201).send(user)
 	} catch (err) {
 		res.status(500).send(err.message)
 	}
-};
-
-export async function signoff(req, res) {
-    //logout
-        const { authorization } = req.headers["authorization"];
-        const token = authorization?.replace('Bearer ', '');
-      
-        if(!token) return res.sendStatus(401);
-    
-    
-        try {
-    
-        const session = await db.collection("sessions").deleteOne({ token });      
-        if (!session) res.sendStatus(404)	
-    
-        res.sendStatus(200);
-        } catch (err) {
-          res.sendStatus(401);
-        }
 };
