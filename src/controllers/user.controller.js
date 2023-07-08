@@ -55,6 +55,7 @@ export async function userTransactions(req, res) {
 	const token = authorization?.replace('Bearer ', '');
 
 	try{
+        //{session} = res.locals;
 		const session = await db.collection("sessions").findOne({token})
         console.log(session)
 		const user = await db.collection("usuarios").findOne({_id: session.userID})
