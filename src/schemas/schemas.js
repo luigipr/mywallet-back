@@ -15,6 +15,8 @@ export const loginSchema = Joi.object({
 export const transactionSchema = Joi.object({
     value: Joi.number().precision(2).required(),
     description: Joi.string().required(),
-    
+    userID: Joi.required(),
+    tipo: Joi.string().required(),
+    date: Joi.required()
 })
 
